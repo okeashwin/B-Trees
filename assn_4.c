@@ -12,6 +12,20 @@ long root_offset = 0;
 bool debug=true;
 FILE *fin = NULL;
 
+int compare(const void *a, const void *b)
+{
+	int *a1=(int *) a;
+	int *b1=(int *) b;
+	
+	if(*a1 < *b1)
+		return -1;
+	else if ( *a1 == *b1)
+		return 0;
+	else
+		return 1;
+}
+
+
 int main(int argc, char *argv[])
 {
 	if(argc < 3)
@@ -126,10 +140,59 @@ int main(int argc, char *argv[])
 					(*root)->no_of_keys++;
 					if(debug)	printf("Root data : %d\t%d\n",(*root)->keys[0],(*root)->no_of_keys);
 					//Write this node to the file
-					btree_node_ptr node;
-					memcpy(node, *root, sizeof(btree_node));
+					btree_node_ptr node= *root;
+					//memcpy(node, *root, sizeof(btree_node));
 					write_node(node);
 					root_offset = 0;
+				}
+				
+				//Tree is not empty
+				else
+				{
+					//Check if the root is not full
+					fseek(fin, sizeof(long), SEEK_SET);
+					fseek(fin, root_offset, SEEK_CUR);
+					int keys_in_root=0;
+					fread(&keys_in_root, sizeof(int), 1, fin);
+					if(debug)	printf("keys_in_root : %d\n",keys_in_root);
+					if(keys_in_root == btree_order - 1)	//Root is Full
+						printf("Root is Full \n");
+					else
+					{
+						int temp_arr[keys_in_root + 1];
+						int i=0;
+						for(i=0;i<keys_in_root + 1;i++)
+							temp_arr[i]=-1;
+						int key_read = 0;
+						//fin points to the 1st integer that we can read
+						for(i=0 ; i < keys_in_root; i++ )
+						{
+							fread(&key_read, sizeof(int), 1, fin);
+							if(debug)	printf("Add at root : %d\n", key_read);
+							temp_arr[i] = key_read;
+						}
+						temp_arr[i] = key;
+
+						//Sort temp_arr
+						qsort(temp_arr, keys_in_root + 1,sizeof(int), compare);
+
+						//Get the fp back
+						fseek(fin, (-1 * keys_in_root )*sizeof(int), SEEK_CUR);
+						fseek(fin, -1*sizeof(int), SEEK_CUR);
+						int new_keys = keys_in_root + 1;
+						fwrite(&new_keys, sizeof(int), 1, fin);
+
+						i=0;
+						//Start writing back
+						for(i=0;i < keys_in_root + 1;i++)
+						{
+							if(debug)	printf("Add at root : Key %d at offset %ld\n",temp_arr[i],ftell(fin));
+							fwrite(&temp_arr[i] , sizeof(int), 1, fin);
+						}
+						//Increment keys_in_root for this node
+						//Reset fp
+						fseek(fin, 0, SEEK_SET);
+					} 
 				}
 			}
 			

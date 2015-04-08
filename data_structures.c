@@ -98,9 +98,9 @@ int find_key_in_btree(char *input_filename, int key)
 
 			int keys_read=0;
 			bool greatest = false;
-			key_to_test = 2147483647;
+			key_to_test = -1;
 			child_offset_to_go=0;
-			while(key <= key_to_test)
+			while(key >= key_to_test)
 			//for(i=0 ; i < btree_order - 1;i++)
 			{
 				//Investigate each key and determine where to go
@@ -122,7 +122,7 @@ int find_key_in_btree(char *input_filename, int key)
 			if(greatest)
 			{
 				//Take the child offset pointer to the last offset field
-				fseek( f_child_offset, btree_order*sizeof(long), SEEK_CUR);
+				fseek( f_child_offset, (btree_order - 1)*sizeof(long), SEEK_CUR);
 				long test_off;
 				test_off = ftell(f_child_offset);
 				if(debug)	printf("Last child offset : %ld\n",test_off);
@@ -130,7 +130,7 @@ int find_key_in_btree(char *input_filename, int key)
 			
 			else
 			{
-				//Loop broken where key_to_test > key
+				//Loop broken where key < key_to_test
 				//Should be always the case
 				if(keys_read < keys_in_node )
 					fseek( f_child_offset, (keys_read - 1)*sizeof(long), SEEK_CUR);
