@@ -9,6 +9,9 @@
 
 int btree_order = 0;
 long root_offset = 0;
+bool debug=true;
+FILE *fin = NULL;
+
 int main(int argc, char *argv[])
 {
 	if(argc < 3)
@@ -42,12 +45,12 @@ int main(int argc, char *argv[])
 	btree_order=atoi(argv[2]);
 
 	//debug bool
-	bool debug=true;
+	//bool debug=true;
 	if(debug)	printf("Index filename received : %s\n",index_file);
 	if(debug)	printf("B Tree order : %d\n",btree_order);
 	bool cmdIsValid=false;
 	//File needs to be opened here
-	FILE *fin;
+	//FILE *fin;
 	fin = fopen (index_file, "r+b");
 	if(fin == NULL)
 	{
@@ -59,8 +62,8 @@ int main(int argc, char *argv[])
 			perror("Index file open error: ");
 			exit(-1);
 		}
-		else
-			fwrite(&root_offset, sizeof(long), 1, fin);
+		//else
+		//	fwrite(&root_offset, sizeof(long), 1, fin);
 	}
 	else
 		fread(&root_offset, sizeof(long), 1, fin);
@@ -108,6 +111,27 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			int key=atoi(tok);
+			int found=0;
+			found=find_key_in_btree(index_file, key);
+			if(found)
+				printf("Entry with key=%d already exists\n",key);
+			else
+			{
+				//Add logic begins here
+				if(root_offset==-1)
+				{
+					//The tree is empty. Construct the root;
+					btree_node_dptr root = new_node_init();
+					(*root)->keys[0] = key;
+					(*root)->no_of_keys++;
+					if(debug)	printf("Root data : %d\t%d\n",(*root)->keys[0],(*root)->no_of_keys);
+					//Write this node to the file
+					btree_node_ptr node;
+					memcpy(node, *root, sizeof(btree_node));
+					write_node(node);
+					root_offset = 0;
+				}
+			}
 			
 		}
 
@@ -121,6 +145,11 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			int key=atoi(tok);
+			bool found=find_key_in_btree(index_file, key);
+			if(found)
+				printf("Entry with key=%d exists\n",key);
+			else
+				printf("Entry with key=%d does not exist\n",key);
 		}
 
 		else if(strcmp(tok,"print")==0)
@@ -129,6 +158,10 @@ int main(int argc, char *argv[])
 
 		else if(strcmp(tok,"end")==0)
 		{
+			//Write the updates root offset
+			fseek(fin, 0, SEEK_SET);
+			fwrite(&root_offset, sizeof(long), 1, fin);
+			fclose(fin);
 			break;
 		}
 	
