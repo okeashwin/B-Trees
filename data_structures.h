@@ -16,4 +16,11 @@ int find_key_in_btree(char *input_filename,int key);
 
 //Write a node's contents to the index file
 void write_node(btree_node_ptr node);
+
+//Populate parent pointers during a tree walk
+long* populate_parents(char *input_filename, long *res, int key);
+
+int compare(const void *a, const void *b);
+
+void insert_in_node( long leaf_offset, int node_keys, int key);
 	

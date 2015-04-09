@@ -11,19 +11,8 @@ int btree_order = 0;
 long root_offset = 0;
 bool debug=true;
 FILE *fin = NULL;
-
-int compare(const void *a, const void *b)
-{
-	int *a1=(int *) a;
-	int *b1=(int *) b;
-	
-	if(*a1 < *b1)
-		return -1;
-	else if ( *a1 == *b1)
-		return 0;
-	else
-		return 1;
-}
+int size_of_tree=0;
+long leaf_offset = 0;
 
 
 int main(int argc, char *argv[])
@@ -132,6 +121,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				//Add logic begins here
+				size_of_tree++;
 				if(root_offset==-1)
 				{
 					//The tree is empty. Construct the root;
@@ -143,56 +133,58 @@ int main(int argc, char *argv[])
 					btree_node_ptr node= *root;
 					//memcpy(node, *root, sizeof(btree_node));
 					write_node(node);
-					root_offset = 0;
+					root_offset = sizeof(long);
 				}
 				
 				//Tree is not empty
 				else
 				{
 					//Check if the root is not full
-					fseek(fin, sizeof(long), SEEK_SET);
-					fseek(fin, root_offset, SEEK_CUR);
+					//fseek(fin, sizeof(long), SEEK_SET);
+					fseek(fin, root_offset, SEEK_SET);
 					int keys_in_root=0;
 					fread(&keys_in_root, sizeof(int), 1, fin);
 					if(debug)	printf("keys_in_root : %d\n",keys_in_root);
 					if(keys_in_root == btree_order - 1)	//Root is Full
-						printf("Root is Full \n");
-					else
 					{
-						int temp_arr[keys_in_root + 1];
+						printf("Root is Full \n");
+						//The recursive procedure goes here to split upto the root
+						//Step 1 : Populate the parent pointers upto the leaf responsible for this insert
+						//long parent_pointers[size_of_tree];
+						long *parent_pointers=(long *)malloc(sizeof(long)*size_of_tree);
 						int i=0;
-						for(i=0;i<keys_in_root + 1;i++)
-							temp_arr[i]=-1;
-						int key_read = 0;
-						//fin points to the 1st integer that we can read
-						for(i=0 ; i < keys_in_root; i++ )
+						for(i=0;i<size_of_tree;i++)
 						{
-							fread(&key_read, sizeof(int), 1, fin);
-							if(debug)	printf("Add at root : %d\n", key_read);
-							temp_arr[i] = key_read;
+							parent_pointers[i] = -1;
+							if(debug)	printf("parent pointer : %d\t%ld",i,parent_pointers[i]);
 						}
-						temp_arr[i] = key;
 
-						//Sort temp_arr
-						qsort(temp_arr, keys_in_root + 1,sizeof(int), compare);
+						parent_pointers = populate_parents( index_file, parent_pointers, key);
 
-						//Get the fp back
-						fseek(fin, (-1 * keys_in_root )*sizeof(int), SEEK_CUR);
-						fseek(fin, -1*sizeof(int), SEEK_CUR);
-						int new_keys = keys_in_root + 1;
-						fwrite(&new_keys, sizeof(int), 1, fin);
-
-						i=0;
-						//Start writing back
-						for(i=0;i < keys_in_root + 1;i++)
+						for(i=size_of_tree - 1;i >= 0;i--)
 						{
-							if(debug)	printf("Add at root : Key %d at offset %ld\n",temp_arr[i],ftell(fin));
-							fwrite(&temp_arr[i] , sizeof(int), 1, fin);
+							if(parent_pointers[i]!=-1)
+								if(debug)	printf("Node offset : %d\tParent Offset : %ld\n",i+1,parent_pointers[i]);
 						}
-						//Increment keys_in_root for this node
-						//Reset fp
+
+						//Step 2 : Get the leaf offset
+						if(debug)	printf("Leaf offset : %ld\n",leaf_offset);
+						//Get the number of nodes in the leaf
 						fseek(fin, 0, SEEK_SET);
-					} 
+						fseek(fin, leaf_offset, SEEK_CUR);
+						int node_keys = 0;
+						fread(&node_keys, sizeof(int), 1, fin);
+						if(debug)	printf("Keys in node : %d\n",node_keys);
+						if(node_keys == btree_order - 1)
+						{
+							//Node is full
+						}
+						else
+							insert_in_node(leaf_offset, node_keys, key);
+						
+					}
+					else
+						insert_in_node(root_offset, keys_in_root, key); 
 				}
 			}
 			
