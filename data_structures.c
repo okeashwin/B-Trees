@@ -10,6 +10,51 @@ extern bool debug;
 extern FILE *fin;
 extern int size_of_tree;
 extern long leaf_offset;
+stack *top=NULL;
+
+
+//Stack API
+void push(long offset)
+{
+	stack *new = (stack *)malloc(sizeof(stack));
+	new->offset = offset;
+	new->next = NULL;
+	if(top == NULL)
+		top = new;
+	else
+	{
+		new->next = top;
+		top = new; 
+	}
+}
+
+long pop()
+{
+	if(top==NULL)
+		return -1;
+	else
+	{
+		long pop_val = top->offset;
+		top = top->next;
+		return pop_val;
+	}
+}
+
+bool stack_is_empty()
+{
+	if(top==NULL)
+		return true;
+	else
+		return false;
+}
+
+long peek()
+{
+	if(top==NULL)
+		return -1;
+	else
+		return top->offset;
+}
 
 int compare(const void *a, const void *b)
 {
@@ -25,7 +70,7 @@ int compare(const void *a, const void *b)
 }
 
 
-btree_node_dptr new_node_init()
+btree_node_ptr new_node_init()
 {
 	btree_node_ptr new= (btree_node_ptr)malloc(sizeof(btree_node));
 	new->no_of_keys = 0;
@@ -40,7 +85,7 @@ btree_node_dptr new_node_init()
 	for(i=0;i<btree_order;i++)
 		new->children_offsets[i] = -1;
 
-	return &new;
+	return new;
 }
 
 //Returns 0 if not found, else returns 1
@@ -328,9 +373,16 @@ long *populate_parents(char *input_filename, long *res, int key)
 
 				//Root node
 				if(curr_node == (root_offset - sizeof(long))/sizeof(btree_node))
+				{
 					res[curr_node] = -10;	//Parent of root doesnt exist
+					push(-10);
+				}
 				else
+				{
 					res[curr_node] = prev_offset;
+					//Pushing the parent onto the stack
+					push(prev_offset);
+				}
                         }
 
                         else
@@ -350,9 +402,15 @@ long *populate_parents(char *input_filename, long *res, int key)
 
 				//Root node
 				if(curr_node == (root_offset - sizeof(long))/sizeof(btree_node))
+				{
 					res[curr_node] = -10;	//Parent of root doesnt exist
+					push(-10);
+				}
 				else
+				{
 					res[curr_node] = prev_offset;
+					push(prev_offset);
+				}
                         }
 
                         //Checking if there is a child node at this offset
@@ -427,4 +485,128 @@ void insert_in_node( long leaf_offset, int node_keys, int key)
         //Reset fp
                                                 
 	fseek(fin, 0, SEEK_SET);
+}
+
+long get_child_after_split(int arr[], int size, int split_value)
+{
+	if(fin==NULL)	
+	{
+		printf("get_child_after_split() : Received a NULL file pointer\n");
+		return -1;
+	}
+
+	int iter=0;
+	for (iter =0; arr[iter] <= split_value ;iter++)
+	{}
+
+	//Start writing from index iter
+	btree_node_ptr new = new_node_init();
+	//Update the keys of this new node
+	//int size = sizeof(arr) / sizeof(int);
+	if(debug)	printf("Size : %d\n",size);
+	int k=0;
+	for(;iter < size ; iter++)
+	{
+		(new)->keys[k] = arr[iter];
+		if(debug)	printf("Iter : %d\tWrote this to the new node : %d\n",iter,(new)->keys[k]);
+		k++;
+	}
+
+	//No need to change the node's child offsets;
+	//Change the no. of keys value of the node
+	(new)->no_of_keys = k;
+
+	//Write this node to the EOF
+	fseek(fin, 0, SEEK_END);
+	long right_offset = ftell(fin);
+	//btree_node_ptr node = *new;
+	if(debug)	printf("%d\n",(new)->no_of_keys);
+	if(debug)	printf("Right_offset : %ld\n",right_offset);
+	write_node(new);
+	if(debug)	printf("Returning right_offset : %ld\n",right_offset);
+	return right_offset;
+}
+//Prints a node's contents at offset offset
+void print_node_at_offset(long offset)
+{
+	fseek(fin, offset, SEEK_SET);
+	int int_val;
+	long long_val;	
+	fread(&int_val, sizeof(int), 1, fin);
+	printf("Number of keys in the nodes : %d\n",int_val);
+	int i=0;
+	for(i=0;i < btree_order - 1;i++)
+	{
+		fread(&int_val, sizeof(int), 1, fin);
+		printf("Node's keys : %d\n",int_val);
+	}
+
+	for(i=0; i<btree_order; i++)
+	{
+		fread(&long_val, sizeof(long), 1, fin);
+		printf("Node's child offsets : %ld\n",long_val);
+	}
+
+	fseek(fin,0,SEEK_SET);
+}
+
+void update_left_child(int temp_arr[], int size, long leaf_offset, int split_value)
+{
+	if(fin==NULL)
+	{
+		printf("update_left_child(): Received a NULL file pointer \n");
+		return;
+	}
+
+	fseek(fin,leaf_offset,SEEK_SET);
+	//int size = sizeof(temp_arr) / sizeof(int);
+	int iter =0;
+	for(iter = 0; temp_arr[iter] < split_value ; iter++)
+	{}
+
+	//Make all the values now as -1
+	int test_key = iter;
+	if(debug)	printf("Updated number of keys in the left child : %d\n", test_key);
+	fseek(fin, leaf_offset , SEEK_SET);
+	
+	//Update the 'number of keys in the node'
+	fwrite( &test_key, sizeof(int), 1, fin);
+
+	//Take it to split node
+	fseek(fin, (iter)*sizeof(int), SEEK_CUR);
+	test_key = -1;
+
+	for(; iter < btree_order - 1 ;iter ++)
+	{
+		if(debug)	printf("%d Written at offset : %ld\n",test_key, ftell(fin));
+		fwrite(&test_key, sizeof(int), 1, fin);
+	}
+	
+	//Update the child offsets now
+	//Set them to -1
+	long long_read = 0;
+	long long_write = -1;
+	int i=0;
+	for(i=0;i<btree_order;i++)
+	{
+		fread(&long_read, sizeof(long), 1, fin);
+		if(long_read != -1)
+		{
+			fseek(fin, -1*sizeof(long), SEEK_CUR);
+			fwrite(&long_write, sizeof(long), 1, fin);
+		}
+	}
+	fseek(fin, 0, SEEK_SET);
+}
+
+void check_parent_and_update(int split_value, long left_child_offset, long right_child_offset)
+{
+	if(fin==NULL)
+	{
+		printf("check_parent_and_update() : Received a NULL file pointer\n");
+		return;
+	}
+	long off = pop();
+	if(debug)	printf("Offset received : %ld\n",off);
+
 }

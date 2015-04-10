@@ -125,14 +125,14 @@ int main(int argc, char *argv[])
 				if(root_offset==-1)
 				{
 					//The tree is empty. Construct the root;
-					btree_node_dptr root = new_node_init();
-					(*root)->keys[0] = key;
-					(*root)->no_of_keys++;
-					if(debug)	printf("Root data : %d\t%d\n",(*root)->keys[0],(*root)->no_of_keys);
+					btree_node_ptr root = new_node_init();
+					(root)->keys[0] = key;
+					(root)->no_of_keys++;
+					if(debug)	printf("Root data : %d\t%d\n",(root)->keys[0],(root)->no_of_keys);
 					//Write this node to the file
-					btree_node_ptr node= *root;
+					//btree_node_ptr node= *root;
 					//memcpy(node, *root, sizeof(btree_node));
-					write_node(node);
+					write_node(root);
 					root_offset = sizeof(long);
 				}
 				
@@ -178,6 +178,47 @@ int main(int argc, char *argv[])
 						if(node_keys == btree_order - 1)
 						{
 							//Node is full
+							int split_index = (int) ceil((btree_order - 1)/2);
+							//Insert the key in sorted order
+							int temp_arr[node_keys + 1];
+        						int i=0;
+        						for(i=0;i<node_keys + 1;i++)
+                						temp_arr[i]=-1;
+        						int key_read = 0;
+        						//fin points to the 1st integer that we can read
+        						for(i=0 ; i < node_keys; i++ )
+        						{
+                						fread(&key_read, sizeof(int), 1, fin);
+                						if(debug)       printf("Add at node : %d\n", key_read);
+                						temp_arr[i] = key_read;
+        						}
+
+        						temp_arr[i] = key;
+
+        						//Sort temp_arr
+        						qsort(temp_arr, node_keys + 1,sizeof(int), compare);
+							//temp_arr has the sorted list of keys 
+							// The key value to be pushed up is :
+							int split_value = temp_arr[split_index];
+							long left_child_offset = leaf_offset;
+							long right_child_offset = 0;
+							int arr_size = node_keys + 1;
+							
+							//This will simply return a node that will be the new right child
+							right_child_offset = get_child_after_split(temp_arr, arr_size, split_value);
+							//Verify
+							print_node_at_offset(right_child_offset);
+
+							//Replace the values of the left child
+							update_left_child(temp_arr, arr_size, leaf_offset, split_value);
+							
+							print_node_at_offset(leaf_offset);
+							//Append right child to the end of the file
+							
+							//check parent
+							check_parent_and_update(split_value, left_child_offset, right_child_offset);
+							
+							
 						}
 						else
 							insert_in_node(leaf_offset, node_keys, key);
