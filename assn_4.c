@@ -145,27 +145,23 @@ int main(int argc, char *argv[])
 					int keys_in_root=0;
 					fread(&keys_in_root, sizeof(int), 1, fin);
 					if(debug)	printf("keys_in_root : %d\n",keys_in_root);
-					if(keys_in_root == btree_order - 1)	//Root is Full
+					//if(keys_in_root == btree_order - 1)	//Root is Full
 					{
-						printf("Root is Full \n");
+						//printf("Root is Full \n");
 						//The recursive procedure goes here to split upto the root
 						//Step 1 : Populate the parent pointers upto the leaf responsible for this insert
 						//long parent_pointers[size_of_tree];
-						long *parent_pointers=(long *)malloc(sizeof(long)*size_of_tree);
 						int i=0;
-						for(i=0;i<size_of_tree;i++)
+						/*for(i=0;i<size_of_tree;i++)
 						{
 							parent_pointers[i] = -1;
 							if(debug)	printf("parent pointer : %d\t%ld",i,parent_pointers[i]);
-						}
-
-						parent_pointers = populate_parents( index_file, parent_pointers, key);
-
-						for(i=size_of_tree - 1;i >= 0;i--)
-						{
-							if(parent_pointers[i]!=-1)
-								if(debug)	printf("Node offset : %d\tParent Offset : %ld\n",i+1,parent_pointers[i]);
-						}
+						}*/
+						
+						//Essentially a find operation that pushes in the parent offsets in a stack
+						cleanup_stack();
+						populate_parents( index_file, key);
+						print_stack();
 
 						//Step 2 : Get the leaf offset
 						if(debug)	printf("Leaf offset : %ld\n",leaf_offset);
@@ -177,8 +173,10 @@ int main(int argc, char *argv[])
 						if(debug)	printf("Keys in node : %d\n",node_keys);
 						if(node_keys == btree_order - 1)
 						{
+							add_key_to_tree(node_keys, leaf_offset, key);
 							//Node is full
-							int split_index = (int) ceil((btree_order - 1)/2);
+							//add_with_split(node_keys, leaf_offset);
+							/*int split_index = (int) ceil((btree_order)/2);
 							//Insert the key in sorted order
 							int temp_arr[node_keys + 1];
         						int i=0;
@@ -217,6 +215,7 @@ int main(int argc, char *argv[])
 							
 							//check parent
 							check_parent_and_update(split_value, left_child_offset, right_child_offset);
+							*/
 							
 							
 						}
@@ -224,8 +223,8 @@ int main(int argc, char *argv[])
 							insert_in_node(leaf_offset, node_keys, key);
 						
 					}
-					else
-						insert_in_node(root_offset, keys_in_root, key); 
+					//else
+						//insert_in_node(root_offset, keys_in_root, key); 
 				}
 			}
 			
@@ -250,6 +249,7 @@ int main(int argc, char *argv[])
 
 		else if(strcmp(tok,"print")==0)
 		{
+			print_tree(index_file);
 		}
 
 		else if(strcmp(tok,"end")==0)

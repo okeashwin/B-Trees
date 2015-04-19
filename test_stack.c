@@ -11,9 +11,17 @@ long leaf_offset = 0;
 int main()
 {
 	long i=0;
+	q_ret_ptr ret;
 	for(i=0;i<10;i++)
-		push(i);
+		//push(i);
+	{
+		enqueue(i,i);
+		printf("Enqueued (%d,%d)\n",i,i);
+	}
 	for(i=0;i<20;i++)
-		printf("%ld\n",pop());
+	{
+		ret = dequeue();
+		printf("%d, %ld\n",ret->level, ret->offset);
+	}
 	return 0;
 }
