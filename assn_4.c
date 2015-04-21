@@ -9,7 +9,7 @@
 
 int btree_order = 0;
 long root_offset = 0;
-bool debug=true;
+bool debug=false;
 FILE *fin = NULL;
 int size_of_tree=0;
 long leaf_offset = 0;
@@ -145,7 +145,6 @@ int main(int argc, char *argv[])
 					int keys_in_root=0;
 					fread(&keys_in_root, sizeof(int), 1, fin);
 					if(debug)	printf("keys_in_root : %d\n",keys_in_root);
-					//if(keys_in_root == btree_order - 1)	//Root is Full
 					{
 						//printf("Root is Full \n");
 						//The recursive procedure goes here to split upto the root
@@ -161,7 +160,7 @@ int main(int argc, char *argv[])
 						//Essentially a find operation that pushes in the parent offsets in a stack
 						cleanup_stack();
 						populate_parents( index_file, key);
-						print_stack();
+						//print_stack();
 
 						//Step 2 : Get the leaf offset
 						if(debug)	printf("Leaf offset : %ld\n",leaf_offset);
@@ -172,59 +171,11 @@ int main(int argc, char *argv[])
 						fread(&node_keys, sizeof(int), 1, fin);
 						if(debug)	printf("Keys in node : %d\n",node_keys);
 						if(node_keys == btree_order - 1)
-						{
 							add_key_to_tree(node_keys, leaf_offset, key);
-							//Node is full
-							//add_with_split(node_keys, leaf_offset);
-							/*int split_index = (int) ceil((btree_order)/2);
-							//Insert the key in sorted order
-							int temp_arr[node_keys + 1];
-        						int i=0;
-        						for(i=0;i<node_keys + 1;i++)
-                						temp_arr[i]=-1;
-        						int key_read = 0;
-        						//fin points to the 1st integer that we can read
-        						for(i=0 ; i < node_keys; i++ )
-        						{
-                						fread(&key_read, sizeof(int), 1, fin);
-                						if(debug)       printf("Add at node : %d\n", key_read);
-                						temp_arr[i] = key_read;
-        						}
-
-        						temp_arr[i] = key;
-
-        						//Sort temp_arr
-        						qsort(temp_arr, node_keys + 1,sizeof(int), compare);
-							//temp_arr has the sorted list of keys 
-							// The key value to be pushed up is :
-							int split_value = temp_arr[split_index];
-							long left_child_offset = leaf_offset;
-							long right_child_offset = 0;
-							int arr_size = node_keys + 1;
-							
-							//This will simply return a node that will be the new right child
-							right_child_offset = get_child_after_split(temp_arr, arr_size, split_value);
-							//Verify
-							print_node_at_offset(right_child_offset);
-
-							//Replace the values of the left child
-							update_left_child(temp_arr, arr_size, leaf_offset, split_value);
-							
-							print_node_at_offset(leaf_offset);
-							//Append right child to the end of the file
-							
-							//check parent
-							check_parent_and_update(split_value, left_child_offset, right_child_offset);
-							*/
-							
-							
-						}
 						else
 							insert_in_node(leaf_offset, node_keys, key);
 						
 					}
-					//else
-						//insert_in_node(root_offset, keys_in_root, key); 
 				}
 			}
 			

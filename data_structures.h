@@ -17,7 +17,7 @@ typedef struct node
 
 typedef struct node_queue
 {
-	int node_level;
+	//int node_level;
 	long node_offset;
 	long queue_position;
 	struct node_queue *next;
@@ -49,16 +49,13 @@ void cleanup_stack();
 //-----------------------------------------Queue API for printing to do a BFS---------------------------
 //Enqueue at rear, dequeue at head
 //This is to enqueue a node's metadata into the queue. node_level is its depth in the B tree, child_offset is its position in the file
-void enqueue( int node_level, long child_offset );
+void enqueue( long child_offset );
 
 //Dequeue function. Will return the offset of the node that is pointed to by the head of the queue
 q_ret_ptr dequeue();
 
 //Print queue
 void print_queue();
-
-//Returns the node level of the head
-int return_head_node_level();
 
 bool queue_is_empty();
 //-------------------------------------------End of queue API

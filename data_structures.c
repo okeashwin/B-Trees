@@ -79,10 +79,10 @@ void cleanup_stack()
 }
 
 //-----------------------------------Queue API-------------------------------------------
-void enqueue( int node_level, long node_offset )
+void enqueue(long node_offset )
 {
 	queue *new = (queue *) malloc(sizeof(queue));
-	new->node_level = node_level;
+	//new->node_level = node_level;
 	new->node_offset = node_offset;
 	new->queue_position = queue_position;
 	queue_position++;
@@ -118,7 +118,7 @@ q_ret_ptr dequeue()
 	else
 	{
 		q_ret_ptr ret = (q_ret_ptr) malloc(sizeof(q_ret));
-		ret->level = head->node_level;
+		//ret->level = head->node_level;
 		ret->offset = head->node_offset;
 		ret->queue_position = head->queue_position;
 		//Queue only has 1 element
@@ -133,14 +133,6 @@ q_ret_ptr dequeue()
 	}
 }
 
-int return_head_node_level()
-{
-	if(head==NULL)
-		return -1;
-	else
-		return head->node_level;
-}
-
 void print_queue()
 {
 	if(head==NULL)
@@ -150,7 +142,7 @@ void print_queue()
 		queue *temp = head;
 		while(temp!=NULL)
 		{
-			printf("(%d, %ld) --> ",temp->node_level, temp->node_offset);
+			printf("(%ld, %ld) --> ",temp->queue_position, temp->node_offset);
 			temp=temp->next;
 		}
 		printf("NULL\n");
@@ -393,6 +385,7 @@ int find_key_in_btree(char *input_filename, int key)
 
 void write_node(btree_node_ptr node)
 {
+	bool debug = false;
 	if(fin==NULL)
 	{
 		if(debug)	printf("In write_node() : Received a NULL file pointer\n");
@@ -434,6 +427,7 @@ void write_node(btree_node_ptr node)
 
 void write_node_at_offset(btree_node_ptr node, long offset)
 {
+	bool debug = false;
         if(fin==NULL)
         {
                 if(debug)       printf("In write_node() : Received a NULL file pointer\n");
@@ -726,7 +720,8 @@ void print_node_at_offset(long offset)
 {
 	fseek(fin, offset, SEEK_SET);
 	int int_val;
-	long long_val;	
+	long long_val;
+	printf("At offset : %ld\n",offset);	
 	fread(&int_val, sizeof(int), 1, fin);
 	printf("Number of keys in the nodes : %d\n",int_val);
 	int i=0;
@@ -861,19 +856,32 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 		iter++;
 	}
 	//Need to copy the last offset to RC
-	iter++;
+	//iter++;
 	right_aux->children_offsets[iter] = aux_node->children_offsets[i];
 
 	//Check both the nodes
 	if(debug)
 	{
 		printf("LC IS : \n");
-		for(i=0;i <=  btree_order ; i++)
+		printf("LC : No. of keys : %d\n", left_aux->no_of_keys);
+		printf("LC keys : \n");
+		for(i=0;i <  btree_order ; i++)
 			printf("%d\t", left_aux->keys[i]);
 		printf("\n");
+		printf("LC children offsets : \n");
+		for(i=0;i < btree_order + 1 ; i++)
+			printf("%ld\t",left_aux->children_offsets[i]);
+		printf("\n");
 		printf("RC IS : \n");
-		for(i=0;i <=  btree_order ; i++)
+		printf("RC : No. of keys : %d\n", right_aux->no_of_keys);
+		printf("RC keys : \n");
+		for(i=0;i <  btree_order ; i++)
 			printf("%d\t", right_aux->keys[i]);
+		printf("\n");
+		printf("RC children offsets : \n");
+		for(i=0;i < btree_order + 1 ; i++)
+			printf("%ld\t",right_aux->children_offsets[i]);
+		printf("\n");
 	}
 
 	//Check for the parent offset. If root, different things need to be done
@@ -893,7 +901,7 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 		if(debug)	printf("RC to be written at : %ld\n",right_child_offset);
 		fseek(fin, 0, SEEK_SET);
 		write_node(right_aux);
-		print_node_at_offset(right_child_offset);
+		//print_node_at_offset(right_child_offset);
 
 
 		//Get the parent's details in an aux node
@@ -951,8 +959,6 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
                                 fread(&key_to_test, sizeof(int), 1, fin);
                                 if(debug)       printf("add_split() : Key_to_test : %d\n",key_to_test);
                                 keys_read++;
-                                if(key==key_to_test)
-                                        return 1;
                         }
                         if(key <= key_to_test && keys_read==1)
                                 smallest = true;
@@ -963,6 +969,8 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 				if(node_full)	rank = btree_order-1;
 				else		rank = keys_in_node;
 			}
+                        else
+                                rank = keys_read - 1;
 
 			//Next item : place split value correctly at 'rank' index 
                         if(debug)
@@ -1010,7 +1018,7 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 			//We are good and we require no split further
 			{
 				write_node_at_offset(aux_parent, next_parent);
-				print_node_at_offset(next_parent);
+				//print_node_at_offset(next_parent);
 			}
 
 			else if(aux_parent->no_of_keys == btree_order)
@@ -1032,6 +1040,7 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
                 fseek(fin, 0, SEEK_END);
                 long right_child_offset = ftell(fin);
                 fseek(fin, 0, SEEK_SET);
+		//Write right node to file
                 write_node(right_aux);
 
 		//Write the new root
@@ -1046,7 +1055,7 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 		fseek(fin, 0, SEEK_END);
 		root_offset = ftell(fin);
 		write_node_at_offset(root, root_offset);
-		print_node_at_offset(root_offset);
+		//print_node_at_offset(root_offset);
 		
 	}	
 	//check parent                                                
@@ -1113,8 +1122,6 @@ void add_key_to_tree(int node_keys, long leaf_offset, int key)
                                 fread(&key_to_test, sizeof(int), 1, fin);
                                 if(debug)       printf("add_split() : Key_to_test : %d\n",key_to_test);
                                 keys_read++;
-                                if(key==key_to_test)
-                                        return 1;
                         }
                         if(key <= key_to_test && keys_read==1)
                                 smallest = true;
@@ -1125,6 +1132,8 @@ void add_key_to_tree(int node_keys, long leaf_offset, int key)
                                 if(node_full)   rank = btree_order-1;
                                 else            rank = keys_in_node;
                         }
+			else
+				rank = keys_read - 1; 
                         int iter2=btree_order - 1;
                         for( iter2=btree_order - 1 ; iter2 > rank ; iter2-- )
                         {
@@ -1132,7 +1141,8 @@ void add_key_to_tree(int node_keys, long leaf_offset, int key)
                                 aux_node->keys[iter2] = aux_node->keys[iter2-1];
                                 aux_node->children_offsets[iter2 + 1] = aux_node->children_offsets[iter2];
                         }
-                        //Insert the split value at rank
+                        //Insert the key  at rank
+			if(debug)	printf("Rank : %d\tKey : %d\n",rank,key);
                         aux_node->no_of_keys++;
                         aux_node->keys[rank] = key;
                         //aux_node->keys[rank + 1] = right_child_offset;
@@ -1181,25 +1191,30 @@ void print_tree(char *input_filename)
 		return;
 	}
 	//Push it into the queue
-	enqueue(curr_level, root_offset );
+	enqueue(root_offset );
 	q_ret_ptr queue_ret;
 	int test;
 	int queue_pos;
 	int keys_in_node = 0;
+	int level_till_pos = 0;
+	int children=0;
+	if(!queue_is_empty())
+		printf(" %d: ", curr_level);
 	while(!queue_is_empty())
 	{
 		queue_ret = dequeue();
+		//Increment to note that a node of this level has been read
 		queue_pos = queue_ret->queue_position;
+		if(debug)	printf("queue_pos : %ld\n",queue_pos);
 		//Take the fp to there
 		fseek(fin, queue_ret->offset, SEEK_SET);
 		//Place the child offset ptr at its proper location
-		if(debug)	printf("fin's offset : %ld\n", ftell(fin));
+		//if(debug)	printf("fin's offset : %ld\n", ftell(fin));
 		fread(&keys_in_node, sizeof(int), 1, fin);
 		fseek(f_child_offset, ftell(fin), SEEK_SET);
 		fseek(f_child_offset, (btree_order -1)*sizeof(int) , SEEK_CUR);
-		if(debug)	printf("f_child's offset : %ld\n",ftell(f_child_offset));
+		//if(debug)	printf("f_child's offset : %ld\n",ftell(f_child_offset));
 		if(debug)	printf("print_tree() : Keys_in_node : %d\n",keys_in_node);
-		printf("%d:", curr_level);
 		int index =0;
 		while(index < keys_in_node)
 		{
@@ -1210,10 +1225,86 @@ void print_tree(char *input_filename)
 				printf("%d,",test);
 			index++;
 		}
-		//if(ret->offset == root_offset)
-		//	curr_level++;
+		if(queue_ret->offset == root_offset)
+		{
+			curr_level++;
+			{
+				printf("\n");
+				printf(" %d: ", curr_level);
+			}
+			children = 0;
+			FILE *ftemp;
+			long temp_off=0;
+			ftemp = fopen (input_filename, "rb");
+			if(ftemp==NULL)
+			{
+				perror("print_tree() : ftemp open error : ");
+				return;
+			}
+			fseek(ftemp, ftell(f_child_offset), SEEK_SET);
+			int iter2=0;
+			while(1)
+			{
+				fread(&temp_off, sizeof(long), 1, ftemp);
+				if(temp_off==-1)
+					break;
+				if(debug)	printf("print_tree() : Read offset %ld\n",temp_off);
+				iter2++;children++;
+				if(iter2==btree_order)
+					break;
+			}
+
+			//Set the variable : level_till_pos
+			level_till_pos = queue_pos + children;
+			children=0;
+			fclose(ftemp);
+		}
+		//Internal node
+		else
+		{
+			//Loop to increment children count at this level
+			FILE *ftemp;
+                        long temp_off=0;
+                        ftemp = fopen (input_filename, "rb");
+                        if(ftemp==NULL)
+                        {
+                                perror("print_tree() : ftemp open error : ");
+                                return;
+                        }
+                        fseek(ftemp, ftell(f_child_offset), SEEK_SET);
+                        int iter2=0;
+                        while(1)
+                        {
+                                fread(&temp_off, sizeof(long), 1, ftemp);
+                                if(temp_off==-1)
+                                        break;
+                                if(debug)       printf("print_tree() : Read offset %ld\n",temp_off);
+                                iter2++;children++;
+                                if(iter2==btree_order)
+                                        break;
+                        }
+
+			if(debug)	printf("Level_till_pos : %d\tqueue_pos: %d\tChildren in this level : %d\n",level_till_pos, queue_pos, children);
+
+			if(queue_pos == level_till_pos)
+			{
+				level_till_pos = queue_pos + children;
+				children=0;
+				if(debug)	printf("-------------------------------------Level change---------------------------------\n");
+				curr_level++;
+				if((!queue_is_empty()))
+				{
+					printf("\n");
+					printf(" %d: ", curr_level);
+				}
+			}
+
+			fclose(ftemp);
+
+		}
 		long test_offset = 0;
 		int iter = 0;
+		//Enqueue activity
 		while(1)
 		{
 			fread(&test_offset, sizeof(long), 1, f_child_offset);
@@ -1222,11 +1313,13 @@ void print_tree(char *input_filename)
 				break;
 			//Enqueue this child offset into the queue
 			if(debug)	printf("Enqueueing %ld to the queue\n",test_offset);
-			enqueue(curr_level, test_offset);
+			enqueue(test_offset);
  
 			if(iter==btree_order)
 				break; 
 		}
+		//Debug
+		//print_queue();
 	}	
-	
+	printf("\n");
 }
