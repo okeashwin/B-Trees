@@ -180,14 +180,14 @@ int compare(const void *a, const void *b)
 
 void file_open(char *input_filename)
 {
-/*	f_child_offset = fopen ( input_filename, "rb");
+	/*f_child_offset = fopen ( input_filename, "rb");
 	if(f_child_offset == NULL)
 	{
 		perror("Index file read error in init():");
 		exit(-1);
-	}
+	}*/
 
-	//Used in print_queue
+/*	//Used in print_queue
 	ftemp = fopen ( input_filename, "rb");
 	if(ftemp == NULL)
 	{
@@ -298,6 +298,7 @@ int find_key_in_btree(char *input_filename, int key)
 		return 0;
 	else
 	{
+
 		//FILE *fin;
 		//fin = fopen (input_filename,"r+b");
 		if(fin==NULL)
@@ -333,7 +334,7 @@ int find_key_in_btree(char *input_filename, int key)
 		//Have a pointer point to the offset where children offsets begin
 		FILE *f_child_offset;
 		f_child_offset = fopen ( input_filename, "rb");
-		//fseek(f_child_offset, 0, SEEK_SET);
+		fseek(f_child_offset, 0, SEEK_SET);
 		if(f_child_offset == NULL)
 		{
 			perror("Index file read error in find_key():");
@@ -365,6 +366,7 @@ int find_key_in_btree(char *input_filename, int key)
 			bool greatest = false;
 			bool node_full = false;
 			bool smallest = false;
+			//key_to_test = LONG_MIN;
 			key_to_test = INT_MIN;
 			child_offset_to_go=0;
 			while(key > key_to_test)
@@ -384,10 +386,7 @@ int find_key_in_btree(char *input_filename, int key)
 				if(debug)	printf("find_key() : Key_to_test : %d\n",key_to_test);
 				keys_read++;
 				if(key==key_to_test)
-				{
-					fclose(f_child_offset);
 					return 1; 
-				}
 			}
 			if(key <= key_to_test && keys_read==1)
 				smallest = true;
@@ -422,8 +421,6 @@ int find_key_in_btree(char *input_filename, int key)
 			fread( &child_offset_to_go, sizeof(long), 1, f_child_offset);
 			if(child_offset_to_go==-1)
 			{
-				
-				fclose(f_child_offset);
 				if(debug)	printf("find_key() : Returning 0 from the function as the child offset was found to be -1\n");
 				return 0;
 			}
@@ -439,6 +436,7 @@ int find_key_in_btree(char *input_filename, int key)
 				fseek(fin, child_offset_to_go, SEEK_CUR);
 			}
 		}
+		//fclose(f_child_offset);
 	}
 }
 
@@ -553,7 +551,7 @@ void populate_parents(char *input_filename, int key)
 
                 FILE *f_child_offset;
                 f_child_offset = fopen ( input_filename, "rb");
-		//fseek(f_child_offset, 0, SEEK_SET);
+		fseek(f_child_offset, 0, SEEK_SET);
                 if(f_child_offset == NULL)
                 {
                         perror("Index file read error in populate_parents():");
@@ -574,8 +572,6 @@ void populate_parents(char *input_filename, int key)
                         if(keys_in_node==0)
                         {
                                 //Node has no key
-
-				fclose(f_child_offset);
                                 if(debug)       printf("Root has no element\n");
                                 return 0;
                         }
@@ -693,7 +689,7 @@ void populate_parents(char *input_filename, int key)
 			curr_offset = ftell(fin);
                 }
 
-		fclose(f_child_offset);
+		//fclose(f_child_offset);
 
         }
 
@@ -1001,6 +997,7 @@ void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux
 
 		//Now need to insert split_value into its correct rank in the parent and shift the children offsets
 		//Taking the loop from find()
+		//int key_to_test = LONG_MIN;
 		int key_to_test = INT_MIN;
 		int rank = 0;
 		int keys_in_node = aux_parent->no_of_keys;
@@ -1167,7 +1164,8 @@ void add_key_to_tree(btree_node_ptr aux_node, int node_keys, long leaf_offset, i
 	}
 
 	int rank =0;
-                int key_to_test = INT_MIN;
+                //int key_to_test = LONG_MIN;
+		int key_to_test = INT_MIN;
                 int keys_in_node = aux_node->no_of_keys;
                 bool greatest = false;
                 bool node_full = false;
@@ -1248,7 +1246,7 @@ void print_tree(char *input_filename)
 	//Take it to the root
 	if(root_offset == -1)
 	{
-		if(debug)	printf("Tree empty\n");
+		printf("Tree empty\n");
 		return;
 	}
 	fseek(fin, root_offset, SEEK_CUR);

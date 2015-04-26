@@ -13,8 +13,6 @@ bool debug=false;
 FILE *fin = NULL;
 int size_of_tree=0;
 long leaf_offset = 0;
-//btree_node_ptr node_in_mem=NULL;
-//btree_node_ptr aux_node_in_mem=NULL;
 
 
 int main(int argc, char *argv[])
@@ -49,21 +47,6 @@ int main(int argc, char *argv[])
 	//B tree order
 	btree_order=atoi(argv[2]);
 
-	if(btree_order < 3)
-	{
-		printf("The order of the tree should be greater than or equal to 3\n");
-		exit(-1);
-	}
-
-
-	btree_node_ptr node_in_mem=NULL;
-	btree_node_ptr aux_node_in_mem=NULL;
-	//Get a new node which you can reuse
-	node_in_mem = new_node_init();
-	//Get a new aux node which can we reused
-	aux_node_in_mem = new_aux_node();
-
-
 	//debug bool
 	//bool debug=true;
 	if(debug)	printf("Index filename received : %s\n",index_file);
@@ -87,9 +70,6 @@ int main(int argc, char *argv[])
 	}
 	else
 		fread(&root_offset, sizeof(long), 1, fin);
-
-	//Open two aux FDs
-	//file_open(index_file);
 
 	char *cmd=(char *)malloc(sizeof(char)*CMD_LEN);
 	char *temp_cmd=(char *)malloc(sizeof(char)*CMD_LEN);
@@ -145,9 +125,7 @@ int main(int argc, char *argv[])
 				if(root_offset==-1)
 				{
 					//The tree is empty. Construct the root;
-					//Cleanup the node
-					btree_node_ptr root = node_clean_up(node_in_mem);
-					//btree_node_ptr root = new_node_init();
+					btree_node_ptr root = new_node_init();
 					(root)->keys[0] = key;
 					(root)->no_of_keys++;
 					if(debug)	printf("Root data : %d\t%d\n",(root)->keys[0],(root)->no_of_keys);
@@ -193,7 +171,7 @@ int main(int argc, char *argv[])
 						fread(&node_keys, sizeof(int), 1, fin);
 						if(debug)	printf("Keys in node : %d\n",node_keys);
 						if(node_keys == btree_order - 1)
-							add_key_to_tree(aux_node_in_mem, node_keys, leaf_offset, key);
+							add_key_to_tree(node_keys, leaf_offset, key);
 						else
 							insert_in_node(leaf_offset, node_keys, key);
 						
