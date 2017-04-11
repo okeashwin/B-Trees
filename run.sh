@@ -1,3 +1,8 @@
+make all
+mv ./assn_4 ./test_samples/
+
+pushd ./test_samples
+
 rm index.bin
 ./assn_4 index.bin 3 < input3.txt > my3.txt
 diff output3.txt my3.txt
@@ -33,4 +38,5 @@ echo "Order 4 done"
 diff output2a.txt my2a.txt
 echo "Order 4 persistence done"
 
-
+rm ./assn_4
+popd

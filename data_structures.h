@@ -59,19 +59,11 @@ void print_queue();
 
 bool queue_is_empty();
 //-------------------------------------------End of queue API
-
-void file_open(char *input_filename);
 //Returns a new initialized node
 //All keys set to -1, All offsets set to -1
 btree_node_ptr new_node_init();
 
 btree_node_ptr new_aux_node();
-
-//Cleans up the node's contents
-btree_node_ptr node_clean_up(btree_node_ptr node);
-
-//Cleans up the aux_node's contents
-btree_node_ptr cleanup_aux_node(btree_node_ptr node);
 
 //find a given key in the btree
 int find_key_in_btree(char *input_filename,int key);
@@ -105,7 +97,7 @@ void check_parent_and_update(int split_value, long left_child_offset, long right
 void add_with_split(int node_keys, long leaf_offset, int key, btree_node_ptr aux_node, long parent_offset);
 
 //This is the routine that will be called once
-void add_key_to_tree(btree_node_ptr aux_node, int node_keys, long leaf_offset, int key);
+void add_key_to_tree(int node_keys, long leaf_offset, int key);
 
 //---------------------Print utility---------------------------
 void print_tree(char *input_filename);
